@@ -87,6 +87,21 @@ export function sapisidHash(sapisid, origin = GEMINI_ORIGIN, now = Date.now()) {
 
 const wizCache = new Map();
 
+// gemini.google.com answers the app page with far more header bytes than
+// undici's 16 KB default allows (UND_ERR_HEADERS_OVERFLOW), so the page fetch
+// goes through a dispatcher with a larger limit. Everything else uses the
+// global fetch so proxy pools keep working.
+const PAGE_MAX_HEADER_SIZE = 1024 * 1024;
+let pageDispatcherPromise = null;
+async function pageFetchOptions() {
+  if (!pageDispatcherPromise) {
+    pageDispatcherPromise = import("undici")
+      .then(({ Agent }) => ({ dispatcher: new Agent({ maxHeaderSize: PAGE_MAX_HEADER_SIZE }) }))
+      .catch(() => ({}));
+  }
+  return pageDispatcherPromise;
+}
+
 export function parseWizGlobalData(html) {
   const m = html.match(/WIZ_global_data\s*=\s*(\{.*?\});/s);
   if (!m) return null;
@@ -112,6 +127,7 @@ async function fetchWiz(jar, signal) {
     },
     redirect: "follow",
     signal,
+    ...(await pageFetchOptions()),
   });
   if (!res.ok) throw new Error(`gemini.google.com returned HTTP ${res.status}`);
   const wiz = parseWizGlobalData(await res.text());
