@@ -22,6 +22,7 @@ import { ZcodeExecutor } from "./zcode.js";
 import { CodeBuddyExecutor } from "./codebuddy-cn.js";
 import { AgentRouterExecutor } from "./agentrouter.js";
 import { MuseSparkWebExecutor } from "./muse-spark-web.js";
+import { GeminiWebExecutor } from "./gemini-web.js";
 import { DevinCliExecutor } from "./devin-cli.js";
 import { CodeBuddyIntlExecutor } from "./codebuddy-intl.js";
 import FreebuffExecutor from "./freebuff.js";
@@ -60,6 +61,8 @@ const executors = {
   "codebuddy-cn": new CodeBuddyExecutor(),
   agentrouter: new AgentRouterExecutor(),
   "muse-spark-web": new MuseSparkWebExecutor(),
+  "gemini-web": new GeminiWebExecutor(),
+  gmw: new GeminiWebExecutor(), // Alias for gemini-web
   "devin-cli": new DevinCliExecutor(),
   "codebuddy-intl": new CodeBuddyIntlExecutor(),
   freebuff: new FreebuffExecutor(),

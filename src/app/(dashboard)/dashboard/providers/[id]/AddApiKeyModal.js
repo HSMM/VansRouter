@@ -14,7 +14,9 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
   const isXaiApiKey = provider === "xai" && !isCookie;
   const credentialLabel = isCookie ? "Cookie Value" : "API Key";
   const credentialPlaceholder = isCookie
-    ? (provider === "grok-web" ? "sso=xxxxx... or just the raw value" : "eyJhbGciOi...")
+    ? (provider === "grok-web" ? "sso=xxxxx... or just the raw value"
+      : provider === "gemini-web" ? "SID=...; HSID=...; SSID=...; APISID=...; SAPISID=...; __Secure-1PSID=..."
+      : "eyJhbGciOi...")
     : (isXaiApiKey ? "xai-..." : "");
 
   const isAzure = provider === "azure";

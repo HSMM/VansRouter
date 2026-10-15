@@ -9,6 +9,7 @@ import { resolveQoderCredentials, resolveQoderModels } from "open-sse/services/q
 import { normalizeProviderId } from "@/lib/providerNormalization";
 import { cleanCookie } from "open-sse/utils/cookie.js";
 import { validateMuseSparkConnection } from "open-sse/executors/muse-spark-web.js";
+import { validateGeminiWebConnection } from "open-sse/executors/gemini-web.js";
 import { validateAgentRouterConnection } from "open-sse/executors/agentrouter.js";
 import { deriveValidateUrl } from "open-sse/providers/schema.js";
 import { ANTHROPIC_API_VERSION } from "open-sse/providers/shared.js";
@@ -608,6 +609,13 @@ export async function POST(request) {
           } else {
             isValid = true;
           }
+          break;
+        }
+
+        case "gemini-web": {
+          const result = await validateGeminiWebConnection(apiKey);
+          isValid = result.valid;
+          if (!result.valid) error = result.error;
           break;
         }
 
