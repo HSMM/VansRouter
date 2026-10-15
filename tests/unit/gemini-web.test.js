@@ -105,13 +105,15 @@ describe("cookies and auth", () => {
 describe("page bootstrap", () => {
   const page = (extra = "") => `<html><script>window.WIZ_global_data = {"PI9WOb":"CAMStoken","d2zJAe":"AIzaKey","cfb2h":"boq_gemini-web-uiserver_20261014.09_p0","GK6dn":"https://geminiweb-pa.clients6.google.com"};</script>${extra}</html>`;
 
-  it("extracts server token, api key, build id and signed-in flag", () => {
-    const wiz = parseWizGlobalData(page('<script>AF_initDataCallback({"SNlM0e":"AFx"});</script>'));
-    expect(wiz).toMatchObject({ serverToken: "CAMStoken", apiKey: "AIzaKey", buildId: "boq_gemini-web-uiserver_20261014.09_p0", signedIn: true });
+  it("extracts server token, api key, build id and channel base", () => {
+    const wiz = parseWizGlobalData(page());
+    expect(wiz).toEqual({
+      serverToken: "CAMStoken", apiKey: "AIzaKey", buildId: "boq_gemini-web-uiserver_20261014.09_p0",
+      channelBase: "https://geminiweb-pa.clients6.google.com",
+    });
   });
 
-  it("reports anonymous pages as not signed in", () => {
-    expect(parseWizGlobalData(page()).signedIn).toBe(false);
+  it("returns null when the page carries no bootstrap data", () => {
     expect(parseWizGlobalData("<html></html>")).toBeNull();
   });
 });

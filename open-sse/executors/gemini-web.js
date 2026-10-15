@@ -92,13 +92,11 @@ export function parseWizGlobalData(html) {
   if (!m) return null;
   let wiz;
   try { wiz = JSON.parse(m[1]); } catch { return null; }
-  const at = html.match(/"SNlM0e"\s*:\s*"([^"]+)"/);
   return {
     serverToken: wiz.PI9WOb || null,
     apiKey: wiz.d2zJAe || null,
     buildId: wiz.cfb2h || null,
     channelBase: wiz.GK6dn || DEFAULT_CHANNEL_BASE,
-    signedIn: Boolean(at),
   };
 }
 
@@ -118,20 +116,28 @@ async function fetchWiz(jar, signal) {
   if (!res.ok) throw new Error(`gemini.google.com returned HTTP ${res.status}`);
   const wiz = parseWizGlobalData(await res.text());
   if (!wiz || !wiz.serverToken || !wiz.apiKey) throw new Error("Could not read Gemini page bootstrap data");
-  if (!wiz.signedIn) throw new Error("Gemini cookies are not signed in — re-copy them from gemini.google.com");
   wizCache.set(key, { value: wiz, expiresAt: Date.now() + WIZ_TTL_MS });
   return wiz;
 }
 
-/** Dashboard connection test: cookies must be complete and the Gemini page must load signed in. */
+/**
+ * Dashboard connection test: cookies must be complete, the Gemini page must
+ * bootstrap, and a channel handshake (signed with SAPISIDHASH) must be accepted.
+ * No message is generated.
+ */
 export async function validateGeminiWebConnection(rawCookie) {
   const jar = parseCookieString(rawCookie);
   const missing = missingCookies(jar);
   if (missing.length) {
     return { valid: false, error: `Cookie string is missing ${missing.join(", ")} — copy all cookies for gemini.google.com from DevTools → Application → Cookies` };
   }
+  const signal = AbortSignal.timeout(20000);
   try {
-    await fetchWiz(jar, AbortSignal.timeout(15000));
+    const wiz = await fetchWiz(jar, signal);
+    const ticketHeader = buildTicketHeader({ ...MODEL_MAP[DEFAULT_MODEL], buildId: wiz.buildId });
+    const session = new GeminiWebSession({ jar, wiz, authUser: "0", ticketHeader, signal });
+    await session.handshake();
+    await session.terminate();
     return { valid: true, error: null };
   } catch (err) {
     return { valid: false, error: err.message || "Gemini session check failed" };
@@ -294,6 +300,7 @@ class GeminiWebSession {
       signal: this.signal,
     });
     const text = await res.text();
+    if (res.status === 401 || res.status === 403) throw new Error("Gemini rejected the session cookies — re-copy them from gemini.google.com");
     if (!res.ok) throw new Error(`Gemini channel handshake failed: HTTP ${res.status}`);
     const m = text.match(/\[\[0,\["c","([^"]+)"/);
     if (!m) throw new Error("Gemini channel handshake returned no session id");
